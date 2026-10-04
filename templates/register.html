@@ -8,12 +8,22 @@
     <h1>Create Account</h1>
 
     <form method="POST">
+
         <input
             type="text"
             name="username"
             placeholder="Username"
+            minlength="3"
+            maxlength="30"
+            pattern="[A-Za-z0-9_]+"
             required
         >
+
+        <br><br>
+
+        <small>
+            Username: 3-30 characters, letters, numbers and underscore only.
+        </small>
 
         <br><br>
 
@@ -21,12 +31,25 @@
             type="password"
             name="password"
             placeholder="Password"
+            minlength="8"
             required
         >
 
         <br><br>
 
+        <small>
+            Password: minimum 8 characters, with uppercase, lowercase and number.
+        </small>
+
+        <br><br>
+
         <button type="submit">Register</button>
+
     </form>
+
+    <br>
+
+    <a href="{{ url_for('auth.login') }}">Already have an account? Login</a>
+
 </body>
 </html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Users - CryptChat</title>
+</head>
+
+<body>
+
+    <h1>Search Users</h1>
+
+    <form method="GET">
+        <input
+            type="text"
+            name="username"
+            placeholder="Search username"
+            value="{{ query }}"
+            required
+        >
+
+        <button type="submit">Search</button>
+    </form>
+
+    <br>
+
+    {% if query %}
+
+        {% if users %}
+            <h3>Results:</h3>
+
+            {% for user in users %}
+                <p>
+                    <a href="{{ url_for('auth.chat', user_id=user.id) }}">
+                        {{ user.username }}
+                    </a>
+                </p>
+            {% endfor %}
+
+        {% else %}
+            <p>No users found.</p>
+        {% endif %}
+
+    {% endif %}
+
+    <br>
+
+    <a href="{{ url_for('auth.logout') }}">Logout</a>
+
+</body>
+</html>
