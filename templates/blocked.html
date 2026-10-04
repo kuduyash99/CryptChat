@@ -6,6 +6,7 @@
 </head>
 
 <body>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
@@ -14,41 +15,81 @@
     {% endif %}
 {% endwith %}
 
-    <h1>Blocked Users</h1>
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>Blocked Users</h1>
+            <p>Manage users you have blocked.</p>
+        </div>
+
+        <a
+            class="btn"
+            href="{{ url_for('auth.connections') }}"
+        >
+            My Connections
+        </a>
+    </div>
 
     {% if blocked_users %}
 
-        {% for user in blocked_users %}
+        <div class="list">
 
-            <div>
-                <strong>{{ user.username }}</strong>
+            {% for user in blocked_users %}
 
-                <form
-                    method="POST"
-                    action="{{ url_for('auth.unblock_user', user_id=user.user_id) }}"
-                    style="display: inline;"
-                >
-                    <button type="submit">Unblock</button>
-                </form>
-            </div>
+                <div class="list-item">
 
-            <br>
+                    <div class="list-item-main">
 
-        {% endfor %}
+                        <div class="list-item-name">
+                            {{ user.username }}
+                        </div>
+
+                    </div>
+
+                    <div class="list-item-actions">
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('auth.unblock_user', user_id=user.user_id) }}"
+                        >
+                            <button
+                                type="submit"
+                                class="btn btn-primary btn-sm"
+                            >
+                                Unblock
+                            </button>
+                        </form>
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
 
     {% else %}
 
-        <p>No blocked users.</p>
+        <div class="card">
+            <p class="empty">
+                No blocked users.
+            </p>
+        </div>
 
     {% endif %}
 
-    <br>
+    <div class="auth-footer">
+        <a href="{{ url_for('auth.connections') }}">
+            My Connections
+        </a>
+        &nbsp;·&nbsp;
+        <a href="{{ url_for('auth.logout') }}">
+            Logout
+        </a>
+    </div>
 
-    <a href="{{ url_for('auth.connections') }}">My Connections</a>
-
-    <br><br>
-
-    <a href="{{ url_for('auth.logout') }}">Logout</a>
+</div>
 
 </body>
 </html>

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <title>Search Users - CryptChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
@@ -13,61 +14,122 @@
         {% endfor %}
     {% endif %}
 {% endwith %}
-    <h1>Search Users</h1>
 
-    <form method="GET">
-        <input
-            type="text"
-            name="username"
-            placeholder="Search username"
-            value="{{ query }}"
-            required
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>Search Users</h1>
+            <p>Find people on CryptChat.</p>
+        </div>
+
+        <a
+            class="btn"
+            href="{{ url_for('auth.logout') }}"
         >
+            Logout
+        </a>
+    </div>
 
-        <button type="submit">Search</button>
-    </form>
+    <div class="card">
 
-    <br>
+        <form method="GET">
+
+            <label for="username">Username</label>
+
+            <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="Search username"
+                value="{{ query }}"
+                required
+            >
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Search
+            </button>
+
+        </form>
+
+    </div>
 
     {% if query %}
 
         {% if users %}
-            <h3>Results:</h3>
 
-            {% for user in users %}
-                <div>
-                    <strong>{{ user.username }}</strong>
+            <div class="page-header">
+                <h2>Results</h2>
+            </div>
 
-                    <form
-                        method="POST"
-                        action="{{ url_for('auth.send_connection_request', user_id=user.id) }}"
-                        style="display: inline;"
-                    >
-                        <button type="submit">Send Connection Request</button>
-                    </form>
+            <div class="list">
 
-                    <form
-                        method="POST"
-                        action="{{ url_for('auth.block_user', user_id=user.id) }}"
-                        style="display: inline;"
-                    >
-                        <button type="submit">Block</button>
-                    </form>
-                </div>
+                {% for user in users %}
 
-                <br>
-            {% endfor %}
+                    <div class="list-item">
+
+                        <div class="list-item-main">
+
+                            <div class="list-item-name">
+                                {{ user.username }}
+                            </div>
+
+                        </div>
+
+                        <div class="list-item-actions">
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('auth.send_connection_request', user_id=user.id) }}"
+                            >
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-sm"
+                                >
+                                    Send Connection Request
+                                </button>
+                            </form>
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('auth.block_user', user_id=user.id) }}"
+                            >
+                                <button
+                                    type="submit"
+                                    class="btn btn-danger btn-sm"
+                                >
+                                    Block
+                                </button>
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
 
         {% else %}
-            <p>No users found.</p>
+
+            <div class="card">
+                <p class="empty">No users found.</p>
+            </div>
+
         {% endif %}
 
     {% endif %}
 
-    <br>
+    <div class="auth-footer">
+        <a href="{{ url_for('auth.connections') }}">
+            Back to Connections
+        </a>
+    </div>
 
-    <a href="{{ url_for('auth.logout') }}">Logout</a>
+</div>
 
 </body>
 </html>
-

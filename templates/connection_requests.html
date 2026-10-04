@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <title>Connection Requests - CryptChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
@@ -14,41 +15,89 @@
     {% endif %}
 {% endwith %}
 
-    <h1>Connection Requests</h1>
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>Connection Requests</h1>
+            <p>Manage your pending connection requests.</p>
+        </div>
+
+        <a
+            class="btn"
+            href="{{ url_for('auth.connections') }}"
+        >
+            Back to Connections
+        </a>
+    </div>
 
     {% if requests %}
 
-        {% for request in requests %}
+        <div class="list">
 
-            <div>
-                <strong>{{ request.username }}</strong>
+            {% for request in requests %}
 
-                <form
-                    method="POST"
-                    action="{{ url_for('auth.accept_connection_request', request_id=request.id) }}"
-                    style="display: inline;"
-                >
-                    <button type="submit">Accept</button>
-                </form>
+                <div class="list-item">
 
-                <form
-                    method="POST"
-                    action="{{ url_for('auth.reject_connection_request', request_id=request.id) }}"
-                    style="display: inline;"
-                >
-                    <button type="submit">Reject</button>
-                </form>
-            </div>
+                    <div class="list-item-main">
 
-            <br>
+                        <div class="list-item-name">
+                            {{ request.username }}
+                        </div>
 
-        {% endfor %}
+                    </div>
+
+                    <div class="list-item-actions">
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('auth.accept_connection_request', request_id=request.id) }}"
+                        >
+                            <button
+                                type="submit"
+                                class="btn btn-primary btn-sm"
+                            >
+                                Accept
+                            </button>
+                        </form>
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('auth.reject_connection_request', request_id=request.id) }}"
+                        >
+                            <button
+                                type="submit"
+                                class="btn btn-danger btn-sm"
+                            >
+                                Reject
+                            </button>
+                        </form>
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
 
     {% else %}
 
-        <p>No pending connection requests.</p>
+        <div class="card">
+            <p class="empty">
+                No pending connection requests.
+            </p>
+        </div>
 
     {% endif %}
+
+    <div class="auth-footer">
+        <a href="{{ url_for('auth.search_users') }}">
+            Find people on CryptChat
+        </a>
+    </div>
+
+</div>
 
 </body>
 </html>
