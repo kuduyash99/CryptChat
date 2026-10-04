@@ -7,3 +7,19 @@ body {
 h1 {
     margin-bottom: 10px;
 }
+
+.flash {
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+}
+
+.flash-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.flash-error {
+    background: #fee2e2;
+    color: #991b1b;
+}

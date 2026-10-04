@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <title>Search Users - CryptChat</title>
 </head>
 
 <body>
-
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
     <h1>Search Users</h1>
 
     <form method="GET">
@@ -63,3 +70,4 @@
 
 </body>
 </html>
+

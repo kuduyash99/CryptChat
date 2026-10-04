@@ -1,7 +1,7 @@
 import bcrypt
 import re
 from datetime import datetime
-from flask import Blueprint, request, render_template, redirect, url_for, session
+from flask import Blueprint, request, render_template, redirect, url_for, session, flash
 from app.db import get_db_connection
 
 from app.encryption import decrypt_message, encrypt_message
@@ -268,7 +268,8 @@ def send_connection_request(user_id):
         cursor.close()
         connection.close()
 
-    return "Connection request sent."
+    flash("Connection request sent.", "success")
+    return redirect(url_for("auth.search_users"))
 
 @auth.route("/connection_requests")
 def connection_requests():
@@ -342,6 +343,7 @@ def accept_connection_request(request_id):
         cursor.close()
         connection.close()
 
+    flash("Connection request accepted.", "success")
     return redirect(url_for("auth.connection_requests"))
 
 @auth.route("/reject_connection/<int:request_id>", methods=["POST"])
@@ -384,6 +386,7 @@ def reject_connection_request(request_id):
         cursor.close()
         connection.close()
 
+    flash("Connection request rejected.", "success")
     return redirect(url_for("auth.connection_requests"))
 
 @auth.route("/connections")
@@ -565,6 +568,7 @@ def remove_connection(connection_id):
         cursor.close()
         connection.close()
 
+    flash("Connection removed.", "success")
     return redirect(url_for("auth.connections"))
 
 @auth.route("/block/<int:user_id>", methods=["POST"])
@@ -628,7 +632,8 @@ def block_user(user_id):
         cursor.close()
         connection.close()
 
-    return "User blocked."
+    flash("User blocked.", "success")
+    return redirect(url_for("auth.connections"))
 
 @auth.route("/unblock/<int:user_id>", methods=["POST"])
 def unblock_user(user_id):
@@ -656,7 +661,8 @@ def unblock_user(user_id):
         cursor.close()
         connection.close()
 
-    return "User unblocked."
+    flash("User unblocked.", "success")
+    return redirect(url_for("auth.blocked_users"))
 
 @auth.route("/blocked")
 def blocked_users():

@@ -113,6 +113,14 @@
 
 <body>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
 <div class="container">
 
     <div class="header">
@@ -184,13 +192,13 @@
                         {% if seconds <= 120 %}
 
                             <span class="status">
-                                ● Online
+                                🟢 Online
                             </span>
 
                         {% else %}
 
                             <span class="status">
-                                ○ Offline
+                                🔴 Offline
                             </span>
 
                             <span class="last-seen">
