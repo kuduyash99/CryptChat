@@ -28,11 +28,27 @@
             <h3>Results:</h3>
 
             {% for user in users %}
-                <p>
-                    <a href="{{ url_for('auth.chat', user_id=user.id) }}">
-                        {{ user.username }}
-                    </a>
-                </p>
+                <div>
+                    <strong>{{ user.username }}</strong>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('auth.send_connection_request', user_id=user.id) }}"
+                        style="display: inline;"
+                    >
+                        <button type="submit">Send Connection Request</button>
+                    </form>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('auth.block_user', user_id=user.id) }}"
+                        style="display: inline;"
+                    >
+                        <button type="submit">Block</button>
+                    </form>
+                </div>
+
+                <br>
             {% endfor %}
 
         {% else %}

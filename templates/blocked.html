@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blocked Users - CryptChat</title>
+</head>
+
+<body>
+
+    <h1>Blocked Users</h1>
+
+    {% if blocked_users %}
+
+        {% for user in blocked_users %}
+
+            <div>
+                <strong>{{ user.username }}</strong>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('auth.unblock_user', user_id=user.user_id) }}"
+                    style="display: inline;"
+                >
+                    <button type="submit">Unblock</button>
+                </form>
+            </div>
+
+            <br>
+
+        {% endfor %}
+
+    {% else %}
+
+        <p>No blocked users.</p>
+
+    {% endif %}
+
+    <br>
+
+    <a href="{{ url_for('auth.connections') }}">My Connections</a>
+
+    <br><br>
+
+    <a href="{{ url_for('auth.logout') }}">Logout</a>
+
+</body>
+</html>

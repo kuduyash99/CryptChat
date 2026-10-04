@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connection Requests - CryptChat</title>
+</head>
+
+<body>
+
+    <h1>Connection Requests</h1>
+
+    {% if requests %}
+
+        {% for request in requests %}
+
+            <div>
+                <strong>{{ request.username }}</strong>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('auth.accept_connection_request', request_id=request.id) }}"
+                    style="display: inline;"
+                >
+                    <button type="submit">Accept</button>
+                </form>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('auth.reject_connection_request', request_id=request.id) }}"
+                    style="display: inline;"
+                >
+                    <button type="submit">Reject</button>
+                </form>
+            </div>
+
+            <br>
+
+        {% endfor %}
+
+    {% else %}
+
+        <p>No pending connection requests.</p>
+
+    {% endif %}
+
+</body>
+</html>

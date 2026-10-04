@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connections - CryptChat</title>
+</head>
+
+<body>
+
+    <h1>My Connections</h1>
+
+    {% if connections %}
+
+        {% for connection in connections %}
+
+            <div>
+                <strong>{{ connection.username }}</strong>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('auth.remove_connection', connection_id=connection.connection_id) }}"
+                    style="display: inline;"
+                >
+                    <button type="submit">Remove Connection</button>
+                </form>
+            </div>
+
+            <br>
+
+        {% endfor %}
+
+    {% else %}
+
+        <p>No connections yet.</p>
+
+    {% endif %}
+
+    <br>
+
+    <a href="{{ url_for('auth.search_users') }}">Search Users</a>
+
+    <br><br>
+
+    <a href="{{ url_for('auth.logout') }}">Logout</a>
+
+</body>
+</html>
