@@ -784,3 +784,98 @@ def send_message(user_id):
         connection.close()
 
     return redirect(url_for("auth.chat", user_id=user_id))
+
+@auth.route("/chat_messages/<int:user_id>")
+def chat_messages(user_id):
+    if "user_id" not in session:
+        return {"error": "Not logged in"}, 401
+
+    current_user_id = session["user_id"]
+
+    if current_user_id == user_id:
+        return {"error": "Invalid chat"}, 400
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        # Check target user
+        cursor.execute(
+            "SELECT id FROM users WHERE id = %s",
+            (user_id,)
+        )
+
+        if not cursor.fetchone():
+            return {"error": "User not found"}, 404
+
+        # Check blocking
+        cursor.execute(
+            """
+            SELECT id
+            FROM blocks
+            WHERE (blocker_id = %s AND blocked_id = %s)
+               OR (blocker_id = %s AND blocked_id = %s)
+            """,
+            (current_user_id, user_id, user_id, current_user_id)
+        )
+
+        if cursor.fetchone():
+            return {"error": "Chat unavailable"}, 403
+
+        # Check accepted connection
+        cursor.execute(
+            """
+            SELECT id
+            FROM connection_requests
+            WHERE status = 'accepted'
+            AND (
+                (sender_id = %s AND receiver_id = %s)
+                OR
+                (sender_id = %s AND receiver_id = %s)
+            )
+            """,
+            (current_user_id, user_id, user_id, current_user_id)
+        )
+
+        if not cursor.fetchone():
+            return {"error": "Not connected"}, 403
+
+        # Get messages
+        cursor.execute(
+            """
+            SELECT id, sender_id, receiver_id, ciphertext, nonce, created_at
+            FROM messages
+            WHERE
+                (sender_id = %s AND receiver_id = %s)
+                OR
+                (sender_id = %s AND receiver_id = %s)
+            ORDER BY created_at ASC, id ASC
+            """,
+            (
+                current_user_id,
+                user_id,
+                user_id,
+                current_user_id
+            )
+        )
+
+        messages = cursor.fetchall()
+
+        for message in messages:
+            message["text"] = decrypt_message(
+                message["ciphertext"],
+                message["nonce"]
+            )
+
+            message["created_at"] = message["created_at"].strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+
+            del message["ciphertext"]
+            del message["nonce"]
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    return {"messages": messages}
