@@ -8,9 +8,33 @@
 
     <h1>Chat with {{ user.username }}</h1>
 
-    <p>Chat window coming next.</p>
+    <div>
+        {% if messages %}
 
-    <a href="{{ url_for('auth.search_users') }}">Back to Search</a>
+            {% for message in messages %}
+
+                <p>
+                    {% if message.sender_id == session["user_id"] %}
+                        <strong>You:</strong>
+                    {% else %}
+                        <strong>{{ user.username }}:</strong>
+                    {% endif %}
+
+                    {{ message.text }}
+                </p>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p>No messages yet.</p>
+
+        {% endif %}
+    </div>
+
+    <br>
+
+    <a href="{{ url_for('auth.connections') }}">Back to Connections</a>
 
 </body>
 </html>

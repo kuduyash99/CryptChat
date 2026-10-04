@@ -3,6 +3,8 @@ import re
 from flask import Blueprint, request, render_template, redirect, url_for, session
 from app.db import get_db_connection
 
+from app.encryption import decrypt_message
+
 
 auth = Blueprint("auth", __name__)
 
@@ -141,34 +143,6 @@ def search_users():
             connection.close()
 
     return render_template("search.html", users=users, query=query)
-
-@auth.route("/chat/<int:user_id>")
-def chat(user_id):
-    if "user_id" not in session:
-        return redirect(url_for("auth.login"))
-
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-
-    try:
-        cursor.execute(
-            "SELECT id, username FROM users WHERE id = %s",
-            (user_id,)
-        )
-
-        user = cursor.fetchone()
-
-    finally:
-        cursor.close()
-        connection.close()
-
-    if not user:
-        return "User not found", 404
-
-    if user["id"] == session["user_id"]:
-        return "You cannot chat with yourself."
-
-    return render_template("chat.html", user=user)
 
 @auth.route("/send_request/<int:user_id>", methods=["POST"])
 def send_connection_request(user_id):
@@ -424,6 +398,101 @@ def connections():
     return render_template(
         "connections.html",
         connections=connections_list
+    )
+
+@auth.route("/chat/<int:user_id>")
+def chat(user_id):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    current_user_id = session["user_id"]
+
+    if current_user_id == user_id:
+        return "You cannot chat with yourself."
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        # Check target user
+        cursor.execute(
+            "SELECT id, username FROM users WHERE id = %s",
+            (user_id,)
+        )
+
+        target_user = cursor.fetchone()
+
+        if not target_user:
+            return "User not found.", 404
+
+        # Check blocking
+        cursor.execute(
+            """
+            SELECT id
+            FROM blocks
+            WHERE (blocker_id = %s AND blocked_id = %s)
+               OR (blocker_id = %s AND blocked_id = %s)
+            """,
+            (current_user_id, user_id, user_id, current_user_id)
+        )
+
+        if cursor.fetchone():
+            return "Chat unavailable."
+
+        # Check accepted connection
+        cursor.execute(
+            """
+            SELECT id
+            FROM connection_requests
+            WHERE status = 'accepted'
+            AND (
+                (sender_id = %s AND receiver_id = %s)
+                OR
+                (sender_id = %s AND receiver_id = %s)
+            )
+            """,
+            (current_user_id, user_id, user_id, current_user_id)
+        )
+
+        connection_data = cursor.fetchone()
+
+        if not connection_data:
+            return "You must be connected with this user to chat."
+
+        cursor.execute(
+            """
+            SELECT id, sender_id, receiver_id, ciphertext, nonce, created_at
+            FROM messages
+            WHERE
+                (sender_id = %s AND receiver_id = %s)
+                OR
+                (sender_id = %s AND receiver_id = %s)
+            ORDER BY created_at ASC, id ASC
+            """,
+            (
+                current_user_id,
+                user_id,
+                user_id,
+                current_user_id
+            )
+        )
+
+        messages = cursor.fetchall()
+
+        for message in messages:
+            message["text"] = decrypt_message(
+                message["ciphertext"],
+                message["nonce"]
+            )       
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    return render_template(
+        "chat.html",
+        user=target_user,
+        messages=messages
     )
 
 @auth.route("/remove_connection/<int:connection_id>", methods=["POST"])
