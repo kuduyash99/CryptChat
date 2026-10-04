@@ -1,63 +1,267 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Connections - CryptChat</title>
+    <title>CryptChat - Home</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            margin: 0;
+        }
+
+        .header a {
+            text-decoration: none;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .actions a {
+            text-decoration: none;
+        }
+
+        button,
+        .button {
+            padding: 9px 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            text-decoration: none;
+            color: black;
+        }
+
+        button:hover,
+        .button:hover {
+            background: #f0f0f0;
+        }
+
+        .connection {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .username {
+            font-weight: bold;
+        }
+
+        .status {
+            font-size: 14px;
+        }
+
+        .last-seen {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .connection-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty {
+            color: #777;
+            padding: 15px 0;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #555;
+            text-decoration: none;
+        }
+    </style>
 </head>
 
 <body>
 
-    <h1>My Connections</h1>
+<div class="container">
+
+    <div class="header">
+
+        <div>
+            <h1>CryptChat</h1>
+            <p>Welcome, {{ session["username"] }}</p>
+        </div>
+
+        <a
+            class="button"
+            href="{{ url_for('auth.logout') }}"
+        >
+            Logout
+        </a>
+
+    </div>
+
+
+    <div class="actions">
+
+        <a
+            class="button"
+            href="{{ url_for('auth.search_users') }}"
+        >
+            Search Users
+        </a>
+
+        <a
+            class="button"
+            href="{{ url_for('auth.connection_requests') }}"
+        >
+            Connection Requests
+        </a>
+
+        <a
+            class="button"
+            href="{{ url_for('auth.blocked_users') }}"
+        >
+            Blocked Users
+        </a>
+
+    </div>
+
+
+    <h2>My Connections</h2>
+
 
     {% if connections %}
 
         {% for connection in connections %}
 
-            <div>
-                <strong>{{ connection.username }}</strong>
+            <div class="connection">
 
-                {% if connection.last_seen %}
-                    {% set seconds = (now - connection.last_seen).total_seconds() %}
+                <div class="user-info">
 
-                    {% if seconds <= 120 %}
-                        <span>● Online</span>
+                    <span class="username">
+                        {{ connection.username }}
+                    </span>
+
+
+                    {% if connection.last_seen %}
+
+                        {% set seconds =
+                            (now - connection.last_seen).total_seconds()
+                        %}
+
+
+                        {% if seconds <= 120 %}
+
+                            <span class="status">
+                                ● Online
+                            </span>
+
+                        {% else %}
+
+                            <span class="status">
+                                ○ Offline
+                            </span>
+
+                            <span class="last-seen">
+                                Last seen: {{ connection.last_seen }}
+                            </span>
+
+                        {% endif %}
+
                     {% else %}
-                        <span>○ Offline</span>
-                        <span>Last seen: {{ connection.last_seen }}</span>
+
+                        <span class="status">
+                            ○ Offline
+                        </span>
+
                     {% endif %}
-                {% else %}
-                    <span>○ Offline</span>
-                {% endif %}
 
-                <a href="{{ url_for('auth.chat', user_id=connection.user_id) }}">
-                    <button type="button">Chat</button>
-                </a>
+                </div>
 
-                <form
-                    method="POST"
-                    action="{{ url_for('auth.remove_connection', connection_id=connection.connection_id) }}"
-                    style="display: inline;"
-                >
-                    <button type="submit">Remove Connection</button>
-                </form>
+
+                <div class="connection-actions">
+
+                    <a
+                        class="button"
+                        href="{{ url_for('auth.chat', user_id=connection.user_id) }}"
+                    >
+                        Chat
+                    </a>
+
+
+                    <form
+                        method="POST"
+                        action="{{ url_for(
+                            'auth.remove_connection',
+                            connection_id=connection.connection_id
+                        ) }}"
+                    >
+
+                        <button type="submit">
+                            Remove
+                        </button>
+
+                    </form>
+
+                </div>
+
             </div>
-
-            <br>
 
         {% endfor %}
 
     {% else %}
 
-        <p>No connections yet.</p>
+        <p class="empty">
+            No connections yet.
+        </p>
+
+        <p>
+            Search for users to start connecting with people.
+        </p>
 
     {% endif %}
 
-    <br>
 
-    <a href="{{ url_for('auth.search_users') }}">Search Users</a>
+    <div class="footer">
 
-    <br><br>
+        <a href="{{ url_for('auth.search_users') }}">
+            Find people on CryptChat
+        </a>
 
-    <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
+
+</div>
 
 </body>
 </html>

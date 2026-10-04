@@ -117,7 +117,7 @@ def login():
             session["user_id"] = user["id"]
             session["username"] = user["username"]
 
-            return f"Login successful. Welcome {user['username']}!"
+            return redirect(url_for("auth.connections"))
 
         return "Invalid username or password"
 
