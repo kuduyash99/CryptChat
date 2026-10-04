@@ -1,5 +1,6 @@
 import bcrypt
 import re
+from datetime import datetime
 from flask import Blueprint, request, render_template, redirect, url_for, session
 from app.db import get_db_connection
 
@@ -7,6 +8,30 @@ from app.encryption import decrypt_message, encrypt_message
 
 
 auth = Blueprint("auth", __name__)
+
+@auth.before_request
+def update_last_seen():
+    if "user_id" not in session:
+        return
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE users
+            SET last_seen = CURRENT_TIMESTAMP
+            WHERE id = %s
+            """,
+            (session["user_id"],)
+        )
+
+        connection.commit()
+
+    finally:
+        cursor.close()
+        connection.close()
 
 
 @auth.route("/register", methods=["GET", "POST"])
@@ -375,7 +400,8 @@ def connections():
             SELECT
                 cr.id AS connection_id,
                 u.id AS user_id,
-                u.username
+                u.username,
+                u.last_seen
             FROM connection_requests cr
             JOIN users u
                 ON (
@@ -397,7 +423,8 @@ def connections():
 
     return render_template(
         "connections.html",
-        connections=connections_list
+        connections=connections_list,
+        now=datetime.now()
     )
 
 @auth.route("/chat/<int:user_id>")

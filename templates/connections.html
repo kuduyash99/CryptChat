@@ -15,6 +15,23 @@
             <div>
                 <strong>{{ connection.username }}</strong>
 
+                {% if connection.last_seen %}
+                    {% set seconds = (now - connection.last_seen).total_seconds() %}
+
+                    {% if seconds <= 120 %}
+                        <span>● Online</span>
+                    {% else %}
+                        <span>○ Offline</span>
+                        <span>Last seen: {{ connection.last_seen }}</span>
+                    {% endif %}
+                {% else %}
+                    <span>○ Offline</span>
+                {% endif %}
+
+                <a href="{{ url_for('auth.chat', user_id=connection.user_id) }}">
+                    <button type="button">Chat</button>
+                </a>
+
                 <form
                     method="POST"
                     action="{{ url_for('auth.remove_connection', connection_id=connection.connection_id) }}"
