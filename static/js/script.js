@@ -1,0 +1,1 @@
+console.log("CryptChat JavaScript loaded");
