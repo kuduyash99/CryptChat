@@ -3,7 +3,7 @@ import re
 from flask import Blueprint, request, render_template, redirect, url_for, session
 from app.db import get_db_connection
 
-from app.encryption import decrypt_message
+from app.encryption import decrypt_message, encrypt_message
 
 
 auth = Blueprint("auth", __name__)
@@ -664,3 +664,96 @@ def blocked_users():
         "blocked.html",
         blocked_users=blocked_users_list
     )
+
+@auth.route("/send_message/<int:user_id>", methods=["POST"])
+def send_message(user_id):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    current_user_id = session["user_id"]
+
+    if current_user_id == user_id:
+        return "You cannot message yourself."
+
+    message_text = request.form.get("message", "").strip()
+
+    if not message_text:
+        return "Message cannot be empty."
+
+    if len(message_text) > 2000:
+        return "Message is too long."
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        # Check target user
+        cursor.execute(
+            "SELECT id FROM users WHERE id = %s",
+            (user_id,)
+        )
+
+        if not cursor.fetchone():
+            return "User not found.", 404
+
+        # Check blocking
+        cursor.execute(
+            """
+            SELECT id
+            FROM blocks
+            WHERE (blocker_id = %s AND blocked_id = %s)
+               OR (blocker_id = %s AND blocked_id = %s)
+            """,
+            (current_user_id, user_id, user_id, current_user_id)
+        )
+
+        if cursor.fetchone():
+            return "Messaging unavailable."
+
+        # Check accepted connection
+        cursor.execute(
+            """
+            SELECT id
+            FROM connection_requests
+            WHERE status = 'accepted'
+            AND (
+                (sender_id = %s AND receiver_id = %s)
+                OR
+                (sender_id = %s AND receiver_id = %s)
+            )
+            """,
+            (current_user_id, user_id, user_id, current_user_id)
+        )
+
+        if not cursor.fetchone():
+            return "You must be connected with this user to send messages."
+
+        # Encrypt message
+        ciphertext, nonce = encrypt_message(message_text)
+
+        # Store encrypted message
+        cursor.execute(
+            """
+            INSERT INTO messages
+            (sender_id, receiver_id, ciphertext, nonce)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (
+                current_user_id,
+                user_id,
+                ciphertext,
+                nonce
+            )
+        )
+
+        connection.commit()
+
+    except Exception:
+        connection.rollback()
+        return "Failed to send message."
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    return redirect(url_for("auth.chat", user_id=user_id))

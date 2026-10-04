@@ -34,6 +34,23 @@
 
     <br>
 
+        <form method="POST" action="{{ url_for('auth.send_message', user_id=user.id) }}">
+
+        <textarea
+            name="message"
+            placeholder="Type a message..."
+            maxlength="2000"
+            required
+        ></textarea>
+
+        <br><br>
+
+        <button type="submit">Send</button>
+
+    </form>
+
+    <br>
+
     <a href="{{ url_for('auth.connections') }}">Back to Connections</a>
 
 </body>
