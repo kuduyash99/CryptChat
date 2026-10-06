@@ -95,6 +95,7 @@ def register():
             cursor.close()
             connection.close()
 
+        flash("Account created successfully.", "success")
         return redirect(url_for("auth.login"))
 
     return render_template("register.html")
@@ -217,12 +218,13 @@ def send_connection_request(user_id):
 
         if existing:
             if existing["status"] == "pending":
-                return "Connection request already pending."
+                flash("Connection request already pending.", "error")
+                return redirect(url_for("auth.search_users"))
 
             if existing["status"] == "accepted":
                 return "You are already connected."
 
-            if existing["status"] == "removed":
+            if existing["status"] in ("removed", "rejected"):
                 cursor.execute(
                     """
                     UPDATE connection_requests
@@ -232,7 +234,9 @@ def send_connection_request(user_id):
                     (existing["id"],)
                 )
                 connection.commit()
-                return "Connection request sent."
+
+                flash("Connection request sent.", "success")
+                return redirect(url_for("auth.search_users"))
 
         cursor.execute(
             """
@@ -247,7 +251,11 @@ def send_connection_request(user_id):
 
         if reverse_request:
             if reverse_request["status"] == "pending":
-                return "This user has already sent you a connection request."
+                flash(
+                    "This user has already sent you a connection request.",
+                    "error"
+                )
+                return redirect(url_for("auth.search_users"))
 
             if reverse_request["status"] == "accepted":
                 return "You are already connected."
@@ -413,7 +421,7 @@ def connections():
         cursor.execute(
             """
             SELECT
-                cr.id AS connection_id,
+                MIN(cr.id) AS connection_id,
                 u.id AS user_id,
                 u.username,
                 u.last_seen
@@ -425,6 +433,7 @@ def connections():
                     (cr.receiver_id = %s AND cr.sender_id = u.id)
                 )
             WHERE cr.status = 'accepted'
+            GROUP BY u.id, u.username, u.last_seen
             ORDER BY u.username
             """,
             (session["user_id"], session["user_id"])
@@ -492,6 +501,7 @@ def chat(user_id):
                 OR
                 (sender_id = %s AND receiver_id = %s)
             )
+            LIMIT 1
             """,
             (current_user_id, user_id, user_id, current_user_id)
         )
@@ -501,6 +511,7 @@ def chat(user_id):
         if not connection_data:
             return "You must be connected with this user to chat."
 
+        # Get messages
         cursor.execute(
             """
             SELECT id, sender_id, receiver_id, ciphertext, nonce, created_at
@@ -525,7 +536,7 @@ def chat(user_id):
             message["text"] = decrypt_message(
                 message["ciphertext"],
                 message["nonce"]
-            )       
+            )
 
     finally:
         cursor.close()
@@ -823,7 +834,9 @@ def chat_messages(user_id):
             (user_id,)
         )
 
-        if not cursor.fetchone():
+        target_user = cursor.fetchone()
+
+        if not target_user:
             return {"error": "User not found"}, 404
 
         # Check blocking
@@ -851,6 +864,7 @@ def chat_messages(user_id):
                 OR
                 (sender_id = %s AND receiver_id = %s)
             )
+            LIMIT 1
             """,
             (
                 current_user_id,
@@ -860,7 +874,9 @@ def chat_messages(user_id):
             )
         )
 
-        if not cursor.fetchone():
+        connection_data = cursor.fetchone()
+
+        if not connection_data:
             return {"error": "Not connected"}, 403
 
         # Get messages
