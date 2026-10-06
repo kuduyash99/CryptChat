@@ -67,6 +67,7 @@
 
             <small>
                 <span id="char-count">0</span>/2000
+                <span id="char-warning"></span>
             </small>
 
             <button type="submit" class="btn btn-primary">
@@ -94,9 +95,17 @@
 
     const messageBox = document.getElementById("message");
     const charCount = document.getElementById("char-count");
+    const charWarning = document.getElementById("char-warning");
 
     messageBox.addEventListener("input", function () {
-        charCount.textContent = messageBox.value.length;
+        const length = messageBox.value.length;
+        charCount.textContent = length;
+
+        if (length >= 2000) {
+            charWarning.textContent = " Maximum limit reached.";
+        } else {
+            charWarning.textContent = "";
+        }
     });
 
 

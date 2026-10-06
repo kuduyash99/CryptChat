@@ -168,10 +168,26 @@ def search_users():
                 FROM users
                 WHERE username LIKE %s
                 AND id != %s
+                AND id NOT IN (
+                    SELECT blocked_id
+                    FROM blocks
+                    WHERE blocker_id = %s
+
+                    UNION
+
+                    SELECT blocker_id
+                    FROM blocks
+                    WHERE blocked_id = %s
+                )
                 ORDER BY username
                 LIMIT 20
                 """,
-                (f"%{query}%", session["user_id"])
+                (
+                    f"%{query}%",
+                    session["user_id"],
+                    session["user_id"],
+                    session["user_id"]
+                )
             )
 
             users = cursor.fetchall()
@@ -204,6 +220,20 @@ def send_connection_request(user_id):
 
         if not user:
             return "User not found", 404
+
+        # Check if either user has blocked the other
+        cursor.execute(
+            """
+            SELECT id
+            FROM blocks
+            WHERE (blocker_id = %s AND blocked_id = %s)
+               OR (blocker_id = %s AND blocked_id = %s)
+            """,
+            (sender_id, user_id, user_id, sender_id)
+        )
+
+        if cursor.fetchone():
+            return "Connection request cannot be sent."
 
         cursor.execute(
             """
@@ -259,19 +289,6 @@ def send_connection_request(user_id):
 
             if reverse_request["status"] == "accepted":
                 return "You are already connected."
-
-        cursor.execute(
-            """
-            SELECT id
-            FROM blocks
-            WHERE (blocker_id = %s AND blocked_id = %s)
-               OR (blocker_id = %s AND blocked_id = %s)
-            """,
-            (sender_id, user_id, user_id, sender_id)
-        )
-
-        if cursor.fetchone():
-            return "Connection request cannot be sent."
 
         cursor.execute(
             """
@@ -777,6 +794,7 @@ def send_message(user_id):
                 OR
                 (sender_id = %s AND receiver_id = %s)
             )
+            LIMIT 1
             """,
             (current_user_id, user_id, user_id, current_user_id)
         )
