@@ -1,17 +1,40 @@
+
+
 from app.encryption import encrypt_message, decrypt_message
 
 
-message = "Hello from CryptChat!"
+def main():
+    print("=" * 45)
+    print("       CRYPTCHAT ENCRYPTION DEMO")
+    print("=" * 45)
 
-ciphertext, nonce = encrypt_message(message)
+    message = input("\nEnter a message to encrypt: ")
 
-print("Encrypted:", ciphertext)
-print("Nonce:", nonce)
+    if not message.strip():
+        print("\nMessage cannot be empty.")
+        return
 
-decrypted = decrypt_message(ciphertext, nonce)
+    print("\n[1] ORIGINAL MESSAGE")
+    print(message)
 
-print("Decrypted:", decrypted)
+    ciphertext, nonce = encrypt_message(message)
 
-assert decrypted == message
+    print("\n[2] ENCRYPTED CIPHERTEXT")
+    print(ciphertext.hex())
 
-print("Encryption test successful")
+    print("\n[3] RANDOM NONCE")
+    print(nonce.hex())
+
+    decrypted = decrypt_message(ciphertext, nonce)
+
+    print("\n[4] DECRYPTED MESSAGE")
+    print(decrypted)
+
+    if decrypted == message:
+        print("\n✓ AES-256-GCM encryption/decryption successful")
+    else:
+        print("\n✗ Decryption failed")
+
+
+if __name__ == "__main__":
+    main()

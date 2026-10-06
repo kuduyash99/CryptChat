@@ -42,20 +42,28 @@ def register():
 
         # Username validation
         if not re.fullmatch(r"[A-Za-z0-9_]{3,30}", username):
-            return "Invalid username. Use 3-30 characters: letters, numbers, or underscore only."
+            flash(
+                "Invalid username. Use 3-30 characters: letters, numbers, or underscore only.",
+                "error"
+            )
+            return redirect(url_for("auth.register"))
 
         # Password validation
         if len(password) < 8:
-            return "Password must be at least 8 characters long."
+            flash("Password must be at least 8 characters long.", "error")
+            return redirect(url_for("auth.register"))
 
         if not re.search(r"[A-Z]", password):
-            return "Password must contain at least one uppercase letter."
+            flash("Password must contain at least one uppercase letter.", "error")
+            return redirect(url_for("auth.register"))
 
         if not re.search(r"[a-z]", password):
-            return "Password must contain at least one lowercase letter."
+            flash("Password must contain at least one lowercase letter.", "error")
+            return redirect(url_for("auth.register"))
 
         if not re.search(r"[0-9]", password):
-            return "Password must contain at least one number."
+            flash("Password must contain at least one number.", "error")
+            return redirect(url_for("auth.register"))
 
         password_hash = bcrypt.hashpw(
             password.encode("utf-8"),
@@ -77,10 +85,12 @@ def register():
             connection.rollback()
 
             if getattr(e, "errno", None) == 1062:
-                return "Username already exists."
+                flash("Username already exists.", "error")
+                return redirect(url_for("auth.register"))
 
-            return "Registration failed."
-
+            flash("Registration failed. Please try again.", "error")
+            return redirect(url_for("auth.register"))
+        
         finally:
             cursor.close()
             connection.close()
@@ -119,14 +129,16 @@ def login():
 
             return redirect(url_for("auth.connections"))
 
-        return "Invalid username or password"
+        flash("Invalid username or password.", "error")
+        return redirect(url_for("auth.login"))
 
     return render_template("login.html")
 
 @auth.route("/profile")
 def profile():
     if "user_id" not in session:
-        return "Not logged in"
+        flash("Please log in first.", "error")
+        return redirect(url_for("auth.login"))
 
     return f"Logged in as {session['username']}"
 
@@ -840,7 +852,12 @@ def chat_messages(user_id):
                 (sender_id = %s AND receiver_id = %s)
             )
             """,
-            (current_user_id, user_id, user_id, current_user_id)
+            (
+                current_user_id,
+                user_id,
+                user_id,
+                current_user_id
+            )
         )
 
         if not cursor.fetchone():
@@ -879,6 +896,9 @@ def chat_messages(user_id):
 
             del message["ciphertext"]
             del message["nonce"]
+
+    except Exception:
+        return {"error": "Failed to load messages"}, 500
 
     finally:
         cursor.close()
