@@ -56,7 +56,8 @@
             method="POST"
             action="{{ url_for('auth.send_message', user_id=user.id) }}"
         >
-
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
             <textarea
                 id="message"
                 name="message"

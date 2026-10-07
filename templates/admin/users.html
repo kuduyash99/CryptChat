@@ -36,6 +36,9 @@
                         {% if not user.is_admin %}
                             <form method="POST"
                                 action="{{ url_for('admin.toggle_user', user_id=user.id) }}">
+
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                                 <button type="submit" class="btn">
                                     {{ "Disable" if user.is_active else "Enable" }}
                                 </button>

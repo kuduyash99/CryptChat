@@ -85,24 +85,30 @@
                                 method="POST"
                                 action="{{ url_for('auth.send_connection_request', user_id=user.id) }}"
                             >
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                                 <button
                                     type="submit"
                                     class="btn btn-primary btn-sm"
                                 >
                                     Send Connection Request
                                 </button>
+
                             </form>
 
                             <form
                                 method="POST"
                                 action="{{ url_for('auth.block_user', user_id=user.id) }}"
                             >
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                                 <button
                                     type="submit"
                                     class="btn btn-danger btn-sm"
                                 >
                                     Block
                                 </button>
+
                             </form>
 
                         </div>

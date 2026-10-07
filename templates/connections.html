@@ -31,7 +31,6 @@
         </a>
     </div>
 
-
     <div class="card">
 
         <div class="list-item-actions">
@@ -61,13 +60,11 @@
 
     </div>
 
-
     <div class="page-header">
         <div>
             <h2>My Connections</h2>
         </div>
     </div>
-
 
     {% if connections %}
 
@@ -83,13 +80,11 @@
                             {{ connection.username }}
                         </div>
 
-
                         {% if connection.last_seen %}
 
                             {% set seconds =
                                 (now - connection.last_seen).total_seconds()
                             %}
-
 
                             {% if seconds <= 120 %}
 
@@ -119,7 +114,6 @@
 
                     </div>
 
-
                     <div class="list-item-actions">
 
                         <a
@@ -129,7 +123,6 @@
                             Chat
                         </a>
 
-
                         <form
                             method="POST"
                             action="{{ url_for(
@@ -137,6 +130,7 @@
                                 connection_id=connection.connection_id
                             ) }}"
                         >
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                             <button
                                 type="submit"
@@ -170,7 +164,6 @@
         </div>
 
     {% endif %}
-
 
     <div class="auth-footer">
 
