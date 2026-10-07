@@ -60,6 +60,7 @@ def dashboard():
     cursor = connection.cursor(dictionary=True)
 
     try:
+        # Verify admin account is still active
         cursor.execute(
             """
             SELECT is_active
@@ -72,18 +73,36 @@ def dashboard():
 
         admin_user = cursor.fetchone()
 
+        if not admin_user or not admin_user["is_active"]:
+            session.pop("admin_id", None)
+            session.pop("admin_username", None)
+
+            flash("Your admin account has been disabled.", "error")
+            return redirect(url_for("admin.admin_login"))
+
+        # Dashboard statistics
+        cursor.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM users) AS total_users,
+                (SELECT COUNT(*) FROM users WHERE is_active = 1) AS active_users,
+                (SELECT COUNT(*) FROM users WHERE is_active = 0) AS disabled_users,
+                (SELECT COUNT(*) FROM messages) AS total_messages,
+                (SELECT COUNT(*) FROM connection_requests
+                 WHERE status = 'accepted') AS total_connections
+            """
+        )
+
+        stats = cursor.fetchone()
+
     finally:
         cursor.close()
         connection.close()
 
-    if not admin_user or not admin_user["is_active"]:
-        session.pop("admin_id", None)
-        session.pop("admin_username", None)
-
-        flash("Your admin account has been disabled.", "error")
-        return redirect(url_for("admin.admin_login"))
-
-    return render_template("admin/dashboard.html")
+    return render_template(
+        "admin/dashboard.html",
+        stats=stats
+    )
 
 
 @admin.route("/users")

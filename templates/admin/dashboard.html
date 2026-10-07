@@ -6,20 +6,66 @@
 </head>
 <body>
 
-<div class="container">
-    <div class="auth-card">
-        <h1>CryptChat Admin Dashboard</h1>
+<div class="container admin-container">
 
-        <p>Welcome, {{ session["admin_username"] }}.</p>
-
-        <a href="{{ url_for('admin.users') }}" class="btn btn-primary">
-            Manage Users
-        </a>
+    <!-- Dashboard Header -->
+    <div class="admin-header">
+        <div>
+            <h1>CryptChat Admin Dashboard</h1>
+            <p>Welcome, {{ session["admin_username"] }}.</p>
+        </div>
 
         <a href="{{ url_for('admin.admin_logout') }}" class="btn">
             Logout
         </a>
     </div>
+
+
+    <!-- Statistics -->
+    <div class="admin-stats">
+
+        <div class="stat-card">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value">{{ stats.total_users }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Active Users</div>
+            <div class="stat-value">{{ stats.active_users }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Disabled Users</div>
+            <div class="stat-value">{{ stats.disabled_users }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Total Messages</div>
+            <div class="stat-value">{{ stats.total_messages }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Accepted Connections</div>
+            <div class="stat-value">{{ stats.total_connections }}</div>
+        </div>
+
+    </div>
+
+
+    <!-- User Management -->
+    <div class="admin-card dashboard-actions">
+
+        <div>
+            <h2>User Management</h2>
+            <p>View, enable, disable, or delete CryptChat accounts.</p>
+        </div>
+
+        <a href="{{ url_for('admin.users') }}" class="btn btn-primary">
+            Manage Users
+        </a>
+
+    </div>
+
 </div>
 
 </body>
