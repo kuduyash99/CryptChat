@@ -1,10 +1,44 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 import bcrypt
 
-from app.auth import get_db_connection
+from app.db import get_db_connection
 
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
+
+
+@admin.before_request
+def require_active_admin():
+    # The login page is the only admin endpoint that does not require a session.
+    if request.endpoint == "admin.admin_login":
+        return
+
+    admin_id = session.get("admin_id")
+    if admin_id is None:
+        return redirect(url_for("admin.admin_login"))
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            "SELECT is_admin, is_active FROM users WHERE id = %s",
+            (admin_id,)
+        )
+        admin_user = cursor.fetchone()
+    finally:
+        cursor.close()
+        connection.close()
+
+    if (
+        not admin_user
+        or not admin_user["is_admin"]
+        or not admin_user["is_active"]
+    ):
+        session.pop("admin_id", None)
+        session.pop("admin_username", None)
+        flash("Your admin account is no longer active.", "error")
+        return redirect(url_for("admin.admin_login"))
 
 
 @admin.route("/login", methods=["GET", "POST"])
@@ -53,33 +87,10 @@ def admin_login():
 
 @admin.route("/dashboard")
 def dashboard():
-    if "admin_id" not in session:
-        return redirect(url_for("admin.admin_login"))
-
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
     try:
-        # Verify admin account is still active
-        cursor.execute(
-            """
-            SELECT is_active
-            FROM users
-            WHERE id = %s
-            AND is_admin = 1
-            """,
-            (session["admin_id"],)
-        )
-
-        admin_user = cursor.fetchone()
-
-        if not admin_user or not admin_user["is_active"]:
-            session.pop("admin_id", None)
-            session.pop("admin_username", None)
-
-            flash("Your admin account has been disabled.", "error")
-            return redirect(url_for("admin.admin_login"))
-
         # Dashboard statistics
         cursor.execute(
             """
@@ -107,9 +118,6 @@ def dashboard():
 
 @admin.route("/users")
 def users():
-    if "admin_id" not in session:
-        return redirect(url_for("admin.admin_login"))
-
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -134,9 +142,6 @@ def users():
 
 @admin.route("/toggle-user/<int:user_id>", methods=["POST"])
 def toggle_user(user_id):
-    if "admin_id" not in session:
-        return redirect(url_for("admin.admin_login"))
-
     if user_id == session["admin_id"]:
         flash("You cannot disable your own admin account.", "error")
         return redirect(url_for("admin.users"))
@@ -177,9 +182,6 @@ def toggle_user(user_id):
 
 @admin.route("/delete-user/<int:user_id>", methods=["POST"])
 def delete_user(user_id):
-    if "admin_id" not in session:
-        return redirect(url_for("admin.admin_login"))
-
     # Prevent deleting any admin account
     if user_id == session["admin_id"]:
         flash("You cannot delete your own admin account.", "error")
