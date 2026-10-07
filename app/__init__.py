@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template
 from dotenv import load_dotenv
-
+from app.admin import admin
 from app.auth import auth
 
 load_dotenv()
@@ -17,6 +17,7 @@ def create_app():
     app.secret_key = os.getenv("SECRET_KEY")
 
     app.register_blueprint(auth)
+    app.register_blueprint(admin)
 
     @app.route("/")
     def home():

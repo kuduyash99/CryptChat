@@ -15,9 +15,31 @@ def update_last_seen():
         return
 
     connection = get_db_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(dictionary=True)
 
     try:
+        cursor.execute(
+            """
+            SELECT is_active
+            FROM users
+            WHERE id = %s
+            """,
+            (session["user_id"],)
+        )
+
+        user = cursor.fetchone()
+
+        if not user or not user["is_active"]:
+            session.pop("user_id", None)
+            session.pop("username", None)
+
+            flash(
+                "Your account has been disabled by an administrator.",
+                "error"
+            )
+
+            return redirect(url_for("auth.login"))
+
         cursor.execute(
             """
             UPDATE users
@@ -111,7 +133,11 @@ def login():
 
         try:
             cursor.execute(
-                "SELECT id, username, password_hash FROM users WHERE username = %s",
+                """
+                    SELECT id, username, password_hash, is_active
+                    FROM users
+                    WHERE username = %s
+                """,
                 (username,)
             )
 
@@ -120,6 +146,10 @@ def login():
         finally:
             cursor.close()
             connection.close()
+
+        if user and not user["is_active"]:
+            flash("Your account has been disabled by an administrator.", "error")
+            return redirect(url_for("auth.login"))
 
         if user and bcrypt.checkpw(
             password.encode("utf-8"),
