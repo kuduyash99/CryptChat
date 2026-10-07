@@ -156,6 +156,94 @@ def toggle_user(user_id):
     flash("User status updated successfully.", "success")
     return redirect(url_for("admin.users"))
 
+@admin.route("/delete-user/<int:user_id>", methods=["POST"])
+def delete_user(user_id):
+    if "admin_id" not in session:
+        return redirect(url_for("admin.admin_login"))
+
+    # Prevent deleting any admin account
+    if user_id == session["admin_id"]:
+        flash("You cannot delete your own admin account.", "error")
+        return redirect(url_for("admin.users"))
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        # Verify the target is a normal user
+        cursor.execute(
+            """
+            SELECT id, username
+            FROM users
+            WHERE id = %s
+            AND is_admin = 0
+            """,
+            (user_id,)
+        )
+
+        user = cursor.fetchone()
+
+        if not user:
+            flash("User not found or cannot be deleted.", "error")
+            return redirect(url_for("admin.users"))
+
+        # Delete messages involving the user
+        cursor.execute(
+            """
+            DELETE FROM messages
+            WHERE sender_id = %s
+               OR receiver_id = %s
+            """,
+            (user_id, user_id)
+        )
+
+        # Delete connection requests involving the user
+        cursor.execute(
+            """
+            DELETE FROM connection_requests
+            WHERE sender_id = %s
+               OR receiver_id = %s
+            """,
+            (user_id, user_id)
+        )
+
+        # Delete blocks involving the user
+        cursor.execute(
+            """
+            DELETE FROM blocks
+            WHERE blocker_id = %s
+               OR blocked_id = %s
+            """,
+            (user_id, user_id)
+        )
+
+        # Delete the user account
+        cursor.execute(
+            """
+            DELETE FROM users
+            WHERE id = %s
+            AND is_admin = 0
+            """,
+            (user_id,)
+        )
+
+        connection.commit()
+
+    except Exception:
+        connection.rollback()
+        flash("Failed to delete user.", "error")
+        return redirect(url_for("admin.users"))
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    flash(
+        f"User '{user['username']}' deleted successfully.",
+        "success"
+    )
+
+    return redirect(url_for("admin.users"))
 
 @admin.route("/logout")
 def admin_logout():

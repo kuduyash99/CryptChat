@@ -4,60 +4,161 @@
     <title>Manage Users - CryptChat Admin</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
 
-<div class="container">
-    <div class="auth-card">
-        <h1>Manage Users</h1>
+<div class="container admin-container">
 
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Username</th>
-                    <th>Admin</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Last Seen</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.id }}</td>
-                    <td>{{ user.username }}</td>
-                    <td>{{ "Yes" if user.is_admin else "No" }}</td>
-                    <td>{{ "Active" if user.is_active else "Disabled" }}</td>
-                    <td>{{ user.created_at }}</td>
-                    <td>{{ user.last_seen or "Never" }}</td>
-                    <td>
-                        {% if not user.is_admin %}
-                            <form method="POST"
-                                action="{{ url_for('admin.toggle_user', user_id=user.id) }}">
-
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                                <button type="submit" class="btn">
-                                    {{ "Disable" if user.is_active else "Enable" }}
-                                </button>
-                            </form>
-                        {% else %}
-                            Protected
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <br>
+    <div class="admin-header">
+        <div>
+            <h1>Manage Users</h1>
+            <p>View and manage CryptChat accounts.</p>
+        </div>
 
         <a href="{{ url_for('admin.dashboard') }}" class="btn">
-            Back to Dashboard
+            Dashboard
         </a>
     </div>
+
+    <div class="admin-card">
+
+        <div class="table-wrapper">
+
+            <table class="admin-table">
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Last Seen</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for user in users %}
+
+                    <tr>
+
+                        <td>{{ user.id }}</td>
+
+                        <td>
+                            <strong>{{ user.username }}</strong>
+                        </td>
+
+                        <td>
+                            {% if user.is_admin %}
+                                <span class="badge badge-admin">
+                                    Admin
+                                </span>
+                            {% else %}
+                                <span class="badge">
+                                    User
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if user.is_active %}
+                                <span class="badge badge-active">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="badge badge-disabled">
+                                    Disabled
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {{ user.created_at }}
+                        </td>
+
+                        <td>
+                            {{ user.last_seen or "Never" }}
+                        </td>
+
+                        <td>
+
+                            {% if user.is_admin %}
+
+                                <span class="protected">
+                                    Protected
+                                </span>
+
+                            {% else %}
+
+                                <div class="admin-actions">
+
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for(
+                                            'admin.toggle_user',
+                                            user_id=user.id
+                                        ) }}"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="{{ csrf_token() }}"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm"
+                                        >
+                                            {{ "Disable" if user.is_active else "Enable" }}
+                                        </button>
+
+                                    </form>
+
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for(
+                                            'admin.delete_user',
+                                            user_id=user.id
+                                        ) }}"
+                                        onsubmit="return confirm(
+                                            'Delete user {{ user.username }}? This will permanently delete their messages, connections, and account.'
+                                        );"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="{{ csrf_token() }}"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-danger btn-sm"
+                                        >
+                                            Delete
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
 </div>
 
 </body>
