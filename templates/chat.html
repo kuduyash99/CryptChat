@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script>
+        try {
+            document.documentElement.dataset.theme = localStorage.getItem('cryptchat-theme') === 'dark' ? 'dark' : 'light';
+        } catch (error) {
+            document.documentElement.dataset.theme = 'light';
+        }
+    </script>
     <title>Chat - CryptChat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -12,7 +19,8 @@
     <div class="chat-shell">
 
         <div class="chat-header">
-            <h1>Chat with {{ user.username }}</h1>
+            <a class="btn btn-sm" href="{{ url_for('auth.connections') }}">Back</a>
+            <h2>Chat with {{ user.username }}</h2>
         </div>
 
         <div class="chat-messages">
@@ -334,6 +342,8 @@
     );
 
 </script>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
 </body>
 </html>
