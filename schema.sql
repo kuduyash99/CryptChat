@@ -84,3 +84,16 @@ CREATE TABLE IF NOT EXISTS blocks (
         blocked_id
     )
 );
+
+-- Per-user unread state; stores only message IDs, not message contents or read receipts.
+CREATE TABLE IF NOT EXISTS conversation_reads (
+    user_id INT NOT NULL,
+    partner_id INT NOT NULL,
+    last_read_message_id INT NOT NULL DEFAULT 0,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (user_id, partner_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (partner_id) REFERENCES users(id) ON DELETE CASCADE
+);
