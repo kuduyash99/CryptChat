@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script>
+        try {
+            document.documentElement.dataset.theme = localStorage.getItem('cryptchat-theme') === 'dark' ? 'dark' : 'light';
+        } catch (error) {
+            document.documentElement.dataset.theme = 'light';
+        }
+    </script>
     <title>CryptChat - Home</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -78,7 +85,17 @@
 
                         <div class="list-item-name">
                             {{ connection.username }}
+                            {% if connection.unread_count %}
+                                <span class="badge unread-badge">
+                                    {{ connection.unread_count }}
+                                </span>
+                            {% endif %}
                         </div>
+                        {% if connection.latest_message_at %}
+                            <div class="muted">
+                                Last message: {{ connection.latest_message_at }}
+                            </div>
+                        {% endif %}
 
                         {% if connection.last_seen %}
 
@@ -174,6 +191,8 @@
     </div>
 
 </div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
 </body>
 </html>
