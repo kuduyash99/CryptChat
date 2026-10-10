@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Login - CryptChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <div class="auth-card">
+        <h1>CryptChat Admin</h1>
+        <p>Administrator Login</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <input
+                type="text"
+                name="username"
+                placeholder="Admin Username"
+                required
+            >
+
+            <input
+                type="password"
+                name="password"
+                placeholder="Admin Password"
+                required
+            >
+
+            <button type="submit" class="btn btn-primary">
+                Login
+            </button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

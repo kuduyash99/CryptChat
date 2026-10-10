@@ -53,6 +53,7 @@
                             method="POST"
                             action="{{ url_for('auth.unblock_user', user_id=user.user_id) }}"
                         >
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button
                                 type="submit"
                                 class="btn btn-primary btn-sm"

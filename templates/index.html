@@ -1,14 +1,234 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>CryptChat</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CryptChat - Secure Messaging</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
 </head>
 
 <body>
-    <h1>CryptChat</h1>
-    <p>Secure messaging platform</p>
+
+    <div class="container">
+
+        <!-- Hero Section -->
+        <div class="card" style="text-align: center; margin-top: 40px;">
+            <h1 style="font-size: 42px; margin-bottom: 10px;">
+                CryptChat
+            </h1>
+
+            <p style="font-size: 20px;">
+                A Secure Messaging Platform
+            </p>
+
+            <p style="max-width: 650px; margin: 20px auto;">
+                CryptChat provides a secure username-based messaging
+                platform where registered users can connect and exchange
+                encrypted text messages.
+            </p>
+
+            <div style="margin-top: 30px;">
+                <a
+                    href="{{ url_for('auth.login') }}"
+                    class="btn btn-primary"
+                >
+                    Login
+                </a>
+
+                <a
+                    href="{{ url_for('auth.register') }}"
+                    class="btn"
+                >
+                    Create Account
+                </a>
+            </div>
+        </div>
+
+
+        <!-- Why CryptChat -->
+        <div class="card">
+            <div class="page-header">
+                <h2>Why CryptChat?</h2>
+            </div>
+
+            <div class="list">
+
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">
+                            Username-Based Communication
+                        </div>
+                        <div class="muted">
+                            Connect with users using unique usernames
+                            instead of sharing phone numbers.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">
+                            Secure Authentication
+                        </div>
+                        <div class="muted">
+                            User passwords are protected using bcrypt
+                            password hashing.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">
+                            Encrypted Messages
+                        </div>
+                        <div class="muted">
+                            Messages are encrypted using AES-256-GCM
+                            before being stored in the database.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">
+                            Private One-to-One Messaging
+                        </div>
+                        <div class="muted">
+                            Communicate directly with accepted connections
+                            through private conversations.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- Technologies -->
+        <div class="card">
+            <div class="page-header">
+                <h2>Technologies Used</h2>
+            </div>
+
+            <div class="list">
+
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">Frontend</div>
+                        <div class="muted">
+                            HTML, CSS, JavaScript and Jinja2
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">Backend</div>
+                        <div class="muted">
+                            Python and Flask
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">Database</div>
+                        <div class="muted">
+                            MySQL
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">Security</div>
+                        <div class="muted">
+                            bcrypt and AES-256-GCM
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- Security -->
+        <div class="card">
+            <div class="page-header">
+                <h2>Security Features</h2>
+            </div>
+
+            <p>
+                CryptChat demonstrates practical security concepts
+                through password hashing, encrypted message storage,
+                authenticated sessions and input validation.
+            </p>
+
+            <p>
+                Passwords are protected using bcrypt, while messages
+                are encrypted using AES-256-GCM before database storage.
+            </p>
+        </div>
+
+
+        <!-- Contact -->
+        <div class="card" style="text-align: center;">
+            <h2>Contact Us</h2>
+
+            <p>
+                Have questions, feedback, or suggestions about CryptChat?
+            </p>
+
+            <p>
+                Email us at
+                <a href="mailto:kuduyash99@gmail.com">
+                    kuduyash99@gmail.com
+                </a>
+            </p>
+        </div>
+
+
+        <!-- Call To Action -->
+        <div class="card" style="text-align: center; margin-bottom: 40px;">
+            <h2>Start Using CryptChat</h2>
+
+            <p>
+                Create an account to connect with other users
+                and exchange secure messages.
+            </p>
+
+            <div style="margin-top: 20px;">
+                <a
+                    href="{{ url_for('auth.login') }}"
+                    class="btn btn-primary"
+                >
+                    Login
+                </a>
+
+                <a
+                    href="{{ url_for('auth.register') }}"
+                    class="btn"
+                >
+                    Create Account
+                </a>
+            </div>
+        </div>
+
+                <!-- Admin Access -->
+        <div style="text-align: center; margin-bottom: 30px;">
+            <a href="{{ url_for('admin.admin_login') }}" class="muted">
+                Admin Login
+            </a>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
 </body>
 </html>

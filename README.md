@@ -14,6 +14,7 @@ CryptChat is a small web-based messaging application where users find and messag
 - Message content encrypted with **AES-256-GCM** before it is stored in MySQL
 - Chat history, with new messages fetched every 3 seconds
 - Online/offline status based on last activity
+- Admin dashboard with account enable/disable and deletion controls
 - Parameterized SQL queries and server-side input validation
 
 ## Tech Stack
@@ -33,10 +34,11 @@ CryptChat/
 ├── app/
 │   ├── __init__.py       # Flask app factory
 │   ├── auth.py           # Routes: auth, search, connections, chat
+│   ├── admin.py          # Admin login, dashboard, and user management
 │   ├── db.py             # MySQL connection helper
 │   └── encryption.py     # AES-256-GCM encrypt/decrypt
 ├── static/               # CSS, JavaScript
-├── templates/            # Jinja2 HTML pages
+├── templates/            # Jinja2 HTML pages, including admin pages
 ├── tests/                # Manual test scripts
 ├── docs/                 # Project documentation
 ├── schema.sql            # Database schema
@@ -88,11 +90,21 @@ Use the first output for `SECRET_KEY` and the second for `MESSAGE_ENCRYPTION_KEY
 
 > **Important:** `.env` is excluded from Git. Never commit it. If `MESSAGE_ENCRYPTION_KEY` changes, previously stored messages can no longer be decrypted.
 
-### 5. Run
+### 5. Create an admin account
+1. Start the app with `python run.py` and register the account you want to use as an administrator.
+2. Stop the app with `Ctrl+C`. In MySQL Workbench, grant that account admin access (replace `your_username` with the registered username):
+
+```sql
+UPDATE users SET is_admin = TRUE WHERE username = 'your_username';
+```
+
+Only grant this role to trusted accounts. Open the **Admin Login** link on the home page and sign in with that account.
+
+### 6. Run
 ```bash
 python run.py
 ```
-Open http://127.0.0.1:5000
+Open http://127.0.0.1:5000 and sign in through the **Admin Login** link.
 
 ## Demo: Two Users
 
@@ -106,6 +118,7 @@ Open http://127.0.0.1:5000
 - **Passwords:** bcrypt with a per-password salt.
 - **Messages:** AES-256-GCM with a unique random 12-byte nonce per message. Ciphertext and nonce are stored in the database; the key lives only in `.env`.
 - **Sessions:** server-side checks on every protected route.
+- **CSRF:** state-changing forms are protected with Flask-WTF CSRF tokens.
 - **Database access:** parameterized queries only.
 - **Secrets:** loaded from environment variables, not hard-coded.
 
@@ -114,7 +127,7 @@ Open http://127.0.0.1:5000
 - Encryption and decryption happen on the server, so this is **encrypted storage at rest, not end-to-end encryption**.
 - New messages arrive by polling every few seconds, not by WebSockets.
 - Runs as a local development server; not production-hardened.
-- CSRF protection and login rate limiting are not implemented yet.
+- Login rate limiting is not implemented.
 
 ## Author
 

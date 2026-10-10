@@ -15,9 +15,31 @@ def update_last_seen():
         return
 
     connection = get_db_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(dictionary=True)
 
     try:
+        cursor.execute(
+            """
+            SELECT is_active
+            FROM users
+            WHERE id = %s
+            """,
+            (session["user_id"],)
+        )
+
+        user = cursor.fetchone()
+
+        if not user or not user["is_active"]:
+            session.pop("user_id", None)
+            session.pop("username", None)
+
+            flash(
+                "Your account has been disabled by an administrator.",
+                "error"
+            )
+
+            return redirect(url_for("auth.login"))
+
         cursor.execute(
             """
             UPDATE users
@@ -95,6 +117,7 @@ def register():
             cursor.close()
             connection.close()
 
+        flash("Account created successfully.", "success")
         return redirect(url_for("auth.login"))
 
     return render_template("register.html")
@@ -110,7 +133,11 @@ def login():
 
         try:
             cursor.execute(
-                "SELECT id, username, password_hash FROM users WHERE username = %s",
+                """
+                    SELECT id, username, password_hash, is_active
+                    FROM users
+                    WHERE username = %s
+                """,
                 (username,)
             )
 
@@ -119,6 +146,10 @@ def login():
         finally:
             cursor.close()
             connection.close()
+
+        if user and not user["is_active"]:
+            flash("Your account has been disabled by an administrator.", "error")
+            return redirect(url_for("auth.login"))
 
         if user and bcrypt.checkpw(
             password.encode("utf-8"),
@@ -167,10 +198,26 @@ def search_users():
                 FROM users
                 WHERE username LIKE %s
                 AND id != %s
+                AND id NOT IN (
+                    SELECT blocked_id
+                    FROM blocks
+                    WHERE blocker_id = %s
+
+                    UNION
+
+                    SELECT blocker_id
+                    FROM blocks
+                    WHERE blocked_id = %s
+                )
                 ORDER BY username
                 LIMIT 20
                 """,
-                (f"%{query}%", session["user_id"])
+                (
+                    f"%{query}%",
+                    session["user_id"],
+                    session["user_id"],
+                    session["user_id"]
+                )
             )
 
             users = cursor.fetchall()
@@ -204,6 +251,20 @@ def send_connection_request(user_id):
         if not user:
             return "User not found", 404
 
+        # Check if either user has blocked the other
+        cursor.execute(
+            """
+            SELECT id
+            FROM blocks
+            WHERE (blocker_id = %s AND blocked_id = %s)
+               OR (blocker_id = %s AND blocked_id = %s)
+            """,
+            (sender_id, user_id, user_id, sender_id)
+        )
+
+        if cursor.fetchone():
+            return "Connection request cannot be sent."
+
         cursor.execute(
             """
             SELECT id, status
@@ -217,12 +278,13 @@ def send_connection_request(user_id):
 
         if existing:
             if existing["status"] == "pending":
-                return "Connection request already pending."
+                flash("Connection request already pending.", "error")
+                return redirect(url_for("auth.search_users"))
 
             if existing["status"] == "accepted":
                 return "You are already connected."
 
-            if existing["status"] == "removed":
+            if existing["status"] in ("removed", "rejected"):
                 cursor.execute(
                     """
                     UPDATE connection_requests
@@ -232,7 +294,9 @@ def send_connection_request(user_id):
                     (existing["id"],)
                 )
                 connection.commit()
-                return "Connection request sent."
+
+                flash("Connection request sent.", "success")
+                return redirect(url_for("auth.search_users"))
 
         cursor.execute(
             """
@@ -247,23 +311,14 @@ def send_connection_request(user_id):
 
         if reverse_request:
             if reverse_request["status"] == "pending":
-                return "This user has already sent you a connection request."
+                flash(
+                    "This user has already sent you a connection request.",
+                    "error"
+                )
+                return redirect(url_for("auth.search_users"))
 
             if reverse_request["status"] == "accepted":
                 return "You are already connected."
-
-        cursor.execute(
-            """
-            SELECT id
-            FROM blocks
-            WHERE (blocker_id = %s AND blocked_id = %s)
-               OR (blocker_id = %s AND blocked_id = %s)
-            """,
-            (sender_id, user_id, user_id, sender_id)
-        )
-
-        if cursor.fetchone():
-            return "Connection request cannot be sent."
 
         cursor.execute(
             """
@@ -413,7 +468,7 @@ def connections():
         cursor.execute(
             """
             SELECT
-                cr.id AS connection_id,
+                MIN(cr.id) AS connection_id,
                 u.id AS user_id,
                 u.username,
                 u.last_seen
@@ -425,6 +480,7 @@ def connections():
                     (cr.receiver_id = %s AND cr.sender_id = u.id)
                 )
             WHERE cr.status = 'accepted'
+            GROUP BY u.id, u.username, u.last_seen
             ORDER BY u.username
             """,
             (session["user_id"], session["user_id"])
@@ -492,6 +548,7 @@ def chat(user_id):
                 OR
                 (sender_id = %s AND receiver_id = %s)
             )
+            LIMIT 1
             """,
             (current_user_id, user_id, user_id, current_user_id)
         )
@@ -501,6 +558,7 @@ def chat(user_id):
         if not connection_data:
             return "You must be connected with this user to chat."
 
+        # Get messages
         cursor.execute(
             """
             SELECT id, sender_id, receiver_id, ciphertext, nonce, created_at
@@ -525,7 +583,7 @@ def chat(user_id):
             message["text"] = decrypt_message(
                 message["ciphertext"],
                 message["nonce"]
-            )       
+            )
 
     finally:
         cursor.close()
@@ -766,6 +824,7 @@ def send_message(user_id):
                 OR
                 (sender_id = %s AND receiver_id = %s)
             )
+            LIMIT 1
             """,
             (current_user_id, user_id, user_id, current_user_id)
         )
@@ -823,7 +882,9 @@ def chat_messages(user_id):
             (user_id,)
         )
 
-        if not cursor.fetchone():
+        target_user = cursor.fetchone()
+
+        if not target_user:
             return {"error": "User not found"}, 404
 
         # Check blocking
@@ -851,6 +912,7 @@ def chat_messages(user_id):
                 OR
                 (sender_id = %s AND receiver_id = %s)
             )
+            LIMIT 1
             """,
             (
                 current_user_id,
@@ -860,7 +922,9 @@ def chat_messages(user_id):
             )
         )
 
-        if not cursor.fetchone():
+        connection_data = cursor.fetchone()
+
+        if not connection_data:
             return {"error": "Not connected"}, 403
 
         # Get messages
