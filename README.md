@@ -66,7 +66,9 @@ Run `schema.sql` in MySQL Workbench, or from the terminal:
 ```bash
 mysql -u root -p < schema.sql
 ```
-This creates the `cryptchat` database and its four tables: `users`, `messages`, `connection_requests`, `blocks`.
+This creates the `cryptchat` database and its application tables, including `contact_notes`.
+
+For an existing database, run `migration_private_contact_notes.sql` once in MySQL Workbench after selecting the `cryptchat` connection. It adds only the `contact_notes` table and leaves existing data in place.
 
 ### 4. Configure environment variables
 Create a file named `.env` in the project root:

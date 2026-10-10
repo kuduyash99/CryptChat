@@ -23,6 +23,32 @@
             <h2>Chat with {{ user.username }}</h2>
         </div>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <details class="private-note">
+            <summary>
+                <span class="private-note-label">Private note</span>
+                <span class="private-note-hint">
+                    {% if private_note %}Saved · only you can see this{% else %}Only you can see this{% endif %}
+                </span>
+            </summary>
+            <div class="private-note-content">
+                <p class="muted">This note stays private to your account and is not sent to {{ user.username }}.</p>
+                <form method="POST" action="{{ url_for('auth.chat', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="note" rows="3" maxlength="1000" placeholder="Add a note about this person...">{{ private_note }}</textarea>
+                    <div class="private-note-actions">
+                        <small>Up to 1000 characters. Save empty to remove.</small>
+                        <button type="submit" class="btn btn-primary btn-sm">Save note</button>
+                    </div>
+                </form>
+            </div>
+        </details>
+
         <div class="chat-messages">
 
             {% if messages %}

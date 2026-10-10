@@ -197,6 +197,7 @@ def search_users():
                 SELECT id, username
                 FROM users
                 WHERE username LIKE %s
+                AND is_active = TRUE
                 AND id != %s
                 AND id NOT IN (
                     SELECT blocked_id
@@ -243,13 +244,13 @@ def send_connection_request(user_id):
 
     try:
         cursor.execute(
-            "SELECT id FROM users WHERE id = %s",
+            "SELECT id FROM users WHERE id = %s AND is_active = TRUE",
             (user_id,)
         )
         user = cursor.fetchone()
 
         if not user:
-            return "User not found", 404
+            return "User not found or unavailable.", 404
 
         # Check if either user has blocked the other
         cursor.execute(
@@ -352,7 +353,8 @@ def connection_requests():
             SELECT cr.id, cr.sender_id, u.username, cr.created_at
             FROM connection_requests cr
             JOIN users u ON cr.sender_id = u.id
-            WHERE cr.receiver_id = %s
+            WHERE u.is_active = TRUE
+            AND cr.receiver_id = %s
             AND cr.status = 'pending'
             ORDER BY cr.created_at DESC
             """,
@@ -381,11 +383,13 @@ def accept_connection_request(request_id):
     try:
         cursor.execute(
             """
-            SELECT id
-            FROM connection_requests
-            WHERE id = %s
-            AND receiver_id = %s
-            AND status = 'pending'
+            SELECT cr.id, cr.sender_id, u.is_active
+            FROM connection_requests cr
+            JOIN users u ON u.id = cr.sender_id
+            WHERE cr.id = %s
+            AND cr.receiver_id = %s
+            AND cr.status = 'pending'
+            FOR UPDATE
             """,
             (request_id, session["user_id"])
         )
@@ -394,6 +398,54 @@ def accept_connection_request(request_id):
 
         if not request_data:
             return "Connection request not found.", 404
+
+        if not request_data["is_active"]:
+            cursor.execute(
+                """
+                UPDATE connection_requests
+                SET status = 'removed'
+                WHERE id = %s
+                """,
+                (request_id,)
+            )
+            connection.commit()
+            flash(
+                "This request was removed because the account is disabled.",
+                "error"
+            )
+            return redirect(url_for("auth.connection_requests"))
+
+        cursor.execute(
+            """
+            SELECT id
+            FROM blocks
+            WHERE (blocker_id = %s AND blocked_id = %s)
+               OR (blocker_id = %s AND blocked_id = %s)
+            """,
+            (
+                session["user_id"],
+                request_data["sender_id"],
+                request_data["sender_id"],
+                session["user_id"]
+            )
+        )
+
+        if cursor.fetchone():
+            cursor.execute(
+                """
+                UPDATE connection_requests
+                SET status = 'removed'
+                WHERE id = %s
+                """,
+                (request_id,)
+            )
+            connection.commit()
+            flash(
+                "This request cannot be accepted because one of you has "
+                "blocked the other.",
+                "error"
+            )
+            return redirect(url_for("auth.connection_requests"))
 
         cursor.execute(
             """
@@ -501,6 +553,7 @@ def connections():
                     (cr.receiver_id = %s AND cr.sender_id = u.id)
                 )
             WHERE cr.status = 'accepted'
+            AND u.is_active = TRUE
             GROUP BY u.id, u.username, u.last_seen
             ORDER BY
                 latest_message_at IS NULL ASC,
@@ -529,7 +582,7 @@ def connections():
         now=datetime.now()
     )
 
-@auth.route("/chat/<int:user_id>")
+@auth.route("/chat/<int:user_id>", methods=["GET", "POST"])
 def chat(user_id):
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
@@ -545,7 +598,7 @@ def chat(user_id):
     try:
         # Check target user
         cursor.execute(
-            "SELECT id, username FROM users WHERE id = %s",
+            "SELECT id, username FROM users WHERE id = %s AND is_active = TRUE",
             (user_id,)
         )
 
@@ -588,6 +641,53 @@ def chat(user_id):
 
         if not connection_data:
             return "You must be connected with this user to chat."
+
+        if request.method == "POST":
+            note = request.form.get("note", "").strip()
+            if len(note) > 1000:
+                flash("Private notes must be 1000 characters or fewer.", "error")
+                return redirect(url_for("auth.chat", user_id=user_id))
+
+            if note:
+                ciphertext, nonce = encrypt_message(note)
+                cursor.execute(
+                    """
+                    INSERT INTO contact_notes
+                        (owner_id, contact_id, ciphertext, nonce)
+                    VALUES (%s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        ciphertext = VALUES(ciphertext),
+                        nonce = VALUES(nonce),
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (current_user_id, user_id, ciphertext, nonce)
+                )
+            else:
+                cursor.execute(
+                    """
+                    DELETE FROM contact_notes
+                    WHERE owner_id = %s AND contact_id = %s
+                    """,
+                    (current_user_id, user_id)
+                )
+
+            connection.commit()
+            flash("Private note saved.", "success")
+            return redirect(url_for("auth.chat", user_id=user_id))
+
+        cursor.execute(
+            """
+            SELECT ciphertext, nonce
+            FROM contact_notes
+            WHERE owner_id = %s AND contact_id = %s
+            """,
+            (current_user_id, user_id)
+        )
+        note_row = cursor.fetchone()
+        private_note = (
+            decrypt_message(note_row["ciphertext"], note_row["nonce"])
+            if note_row else ""
+        )
 
         # Get messages
         cursor.execute(
@@ -648,7 +748,8 @@ def chat(user_id):
     return render_template(
         "chat.html",
         user=target_user,
-        messages=messages
+        messages=messages,
+        private_note=private_note
     )
 
 @auth.route("/remove_connection/<int:connection_id>", methods=["POST"])
@@ -734,7 +835,7 @@ def block_user(user_id):
             """
             UPDATE connection_requests
             SET status = 'removed'
-            WHERE status = 'accepted'
+            WHERE status IN ('accepted', 'pending')
             AND (
                 (sender_id = %s AND receiver_id = %s)
                 OR
@@ -848,12 +949,12 @@ def send_message(user_id):
     try:
         # Check target user
         cursor.execute(
-            "SELECT id FROM users WHERE id = %s",
+            "SELECT id FROM users WHERE id = %s AND is_active = TRUE",
             (user_id,)
         )
 
         if not cursor.fetchone():
-            return "User not found.", 404
+            return "User not found or unavailable.", 404
 
         # Check blocking
         cursor.execute(
@@ -934,7 +1035,7 @@ def chat_messages(user_id):
     try:
         # Check target user
         cursor.execute(
-            "SELECT id FROM users WHERE id = %s",
+            "SELECT id FROM users WHERE id = %s AND is_active = TRUE",
             (user_id,)
         )
 
