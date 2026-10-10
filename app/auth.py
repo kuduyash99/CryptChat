@@ -471,7 +471,28 @@ def connections():
                 MIN(cr.id) AS connection_id,
                 u.id AS user_id,
                 u.username,
-                u.last_seen
+                u.last_seen,
+                (
+                    SELECT m.created_at
+                    FROM messages m
+                    WHERE
+                        (m.sender_id = %s AND m.receiver_id = u.id)
+                        OR (m.sender_id = u.id AND m.receiver_id = %s)
+                    ORDER BY m.created_at DESC, m.id DESC
+                    LIMIT 1
+                ) AS latest_message_at,
+                (
+                    SELECT COUNT(*)
+                    FROM messages m
+                    WHERE m.sender_id = u.id
+                    AND m.receiver_id = %s
+                    AND m.id > COALESCE((
+                        SELECT crd.last_read_message_id
+                        FROM conversation_reads crd
+                        WHERE crd.user_id = %s
+                        AND crd.partner_id = u.id
+                    ), 0)
+                ) AS unread_count
             FROM connection_requests cr
             JOIN users u
                 ON (
@@ -481,9 +502,19 @@ def connections():
                 )
             WHERE cr.status = 'accepted'
             GROUP BY u.id, u.username, u.last_seen
-            ORDER BY u.username
+            ORDER BY
+                latest_message_at IS NULL ASC,
+                latest_message_at DESC,
+                u.username
             """,
-            (session["user_id"], session["user_id"])
+            (
+                session["user_id"],
+                session["user_id"],
+                session["user_id"],
+                session["user_id"],
+                session["user_id"],
+                session["user_id"]
+            )
         )
 
         connections_list = cursor.fetchall()
@@ -578,6 +609,31 @@ def chat(user_id):
         )
 
         messages = cursor.fetchall()
+
+        last_read_message_id = max(
+            (
+                message["id"]
+                for message in messages
+                if message["receiver_id"] == current_user_id
+            ),
+            default=0
+        )
+
+        if last_read_message_id:
+            cursor.execute(
+                """
+                INSERT INTO conversation_reads
+                    (user_id, partner_id, last_read_message_id)
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    last_read_message_id = GREATEST(
+                        last_read_message_id,
+                        VALUES(last_read_message_id)
+                    )
+                """,
+                (current_user_id, user_id, last_read_message_id)
+            )
+            connection.commit()
 
         for message in messages:
             message["text"] = decrypt_message(
@@ -947,6 +1003,31 @@ def chat_messages(user_id):
         )
 
         messages = cursor.fetchall()
+
+        last_read_message_id = max(
+            (
+                message["id"]
+                for message in messages
+                if message["receiver_id"] == current_user_id
+            ),
+            default=0
+        )
+
+        if last_read_message_id:
+            cursor.execute(
+                """
+                INSERT INTO conversation_reads
+                    (user_id, partner_id, last_read_message_id)
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    last_read_message_id = GREATEST(
+                        last_read_message_id,
+                        VALUES(last_read_message_id)
+                    )
+                """,
+                (current_user_id, user_id, last_read_message_id)
+            )
+            connection.commit()
 
         for message in messages:
             message["text"] = decrypt_message(
