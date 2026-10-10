@@ -570,6 +570,6 @@ input:focus, textarea:focus {
 .unread-badge {
     margin-left: 8px;
     background: var(--accent);
-    color: #fff;
+    color: var(--bg);
     vertical-align: middle;
 }
